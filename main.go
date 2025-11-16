@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
-	fmt.Println("gRPC Server is starting...")
+	fmt.Println("Starting gRPC Server...")
+
 }
