@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"runtime/debug"
 
 	"github.com/arthurhzna/Golang_gRPC/internal/handler"
 	"github.com/arthurhzna/Golang_gRPC/pb/service"
@@ -13,29 +12,8 @@ import (
 	"github.com/arthurhzna/Golang_gRPC/pkg/grpcmiddlerware"
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpc/status"
 )
-
-func ErrorMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("Recovered from panic: %v", r)
-			debug.PrintStack() // print the stack trace or panic stack trace
-
-			err = status.Errorf(codes.Internal, "Internal server error: %v", r)
-		}
-
-	}()
-
-	res, err := handler(ctx, req)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Internal server error: %v", err)
-	}
-	return res, nil
-}
 
 func main() {
 	err := godotenv.Load()
