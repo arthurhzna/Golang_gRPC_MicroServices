@@ -11,6 +11,9 @@ cel.dev/expr
 # github.com/antlr4-go/antlr/v4 v4.13.1
 ## explicit; go 1.22
 github.com/antlr4-go/antlr/v4
+# github.com/golang-jwt/jwt/v5 v5.3.0
+## explicit; go 1.21
+github.com/golang-jwt/jwt/v5
 # github.com/google/cel-go v0.26.1
 ## explicit; go 1.22.0
 github.com/google/cel-go/cel
@@ -46,6 +49,9 @@ github.com/joho/godotenv
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
+# github.com/patrickmn/go-cache v2.1.0+incompatible
+## explicit
+github.com/patrickmn/go-cache
 # github.com/stoewer/go-strcase v1.3.1
 ## explicit; go 1.11
 github.com/stoewer/go-strcase

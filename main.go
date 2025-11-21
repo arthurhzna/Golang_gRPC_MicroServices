@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/arthurhzna/Golang_gRPC/internal/handler"
 	"github.com/arthurhzna/Golang_gRPC/internal/repository"
@@ -15,6 +16,8 @@ import (
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	gocache "github.com/patrickmn/go-cache"
 )
 
 func main() {
@@ -37,9 +40,11 @@ func main() {
 		reflection.Register(grpcServer)
 	}
 
+	cacheService := gocache.New(time.Hour*24, time.Hour)
+
 	db := database.ConnectDb(context.Background(), os.Getenv("DB_URL"))
 	authRepository := repository.NewAuthRepository(db)
-	authService := service.NewAuthService(authRepository)
+	authService := service.NewAuthService(authRepository, cacheService)
 	authHandler := handler.NewAuthHandler(authService)
 
 	auth.RegisterAuthServiceServer(grpcServer, authHandler)
