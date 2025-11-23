@@ -19,6 +19,8 @@ type IProductService interface {
 	CreateProduct(ctx context.Context, req *product.CreateProductRequest) (*product.CreateProductResponse, error)
 	DetailProduct(ctx context.Context, req *product.DetailProductRequest) (*product.DetailProductResponse, error)
 	EditProduct(ctx context.Context, req *product.EditProductRequest) (*product.EditProductResponse, error)
+	DeleteProduct(ctx context.Context, req *product.DeleteProductRequest) (*product.DeleteProductResponse, error)
+	ListProduct(ctx context.Context, req *product.ListProductRequest) (*product.ListProductResponse, error)
 }
 
 type productService struct {
@@ -103,12 +105,6 @@ func (ps *productService) EditProduct(ctx context.Context, req *product.EditProd
 	productEntity, err := ps.productRepository.GetProductById(ctx, req.Id)
 	if err != nil {
 		return nil, err
-	}
-
-	if productEntity == nil {
-		return &product.EditProductResponse{
-			Base: utils.NotFoundResponse("Product not found"),
-		}, nil
 	}
 
 	if productEntity == nil {
@@ -235,5 +231,69 @@ func (ps *productService) EditProduct(ctx context.Context, req *product.EditProd
 	return &product.EditProductResponse{
 		Base: utils.SuccessResponse("Product detail retrieved successfully"),
 		Id:   req.Id,
+	}, nil
+}
+
+func (ps *productService) DeleteProduct(ctx context.Context, req *product.DeleteProductRequest) (*product.DeleteProductResponse, error) {
+	claims, err := jwtentity.GetClaimsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(claims.Role)
+
+	if claims.Role != entity.UserRoleAdmin {
+		return nil, utils.UnaunthorizedResponse()
+	}
+
+	productEntity, err := ps.productRepository.GetProductById(ctx, req.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	if productEntity == nil {
+		return &product.DeleteProductResponse{
+			Base: utils.NotFoundResponse("Product not found"),
+		}, nil
+	}
+
+	err = ps.productRepository.DeleteProduct(ctx, req.Id, time.Now(), claims.FullName)
+	if err != nil {
+		return nil, err
+	}
+
+	//remove image file from storage
+	imagePath := filepath.Join("storage", "product", productEntity.ImageFileName)
+	err = os.Remove(imagePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &product.DeleteProductResponse{
+		Base: utils.SuccessResponse("Delete product successfully"),
+	}, nil
+
+}
+
+func (ps *productService) ListProduct(ctx context.Context, req *product.ListProductRequest) (*product.ListProductResponse, error) {
+	products, paginationResponse, err := ps.productRepository.GetProductsByPagination(ctx, req.Pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	var data []*product.ListProductResponseItem = make([]*product.ListProductResponseItem, 0)
+	for _, prod := range products {
+		data = append(data, &product.ListProductResponseItem{
+			Id:          prod.Id,
+			Name:        prod.Name,
+			Description: prod.Description,
+			Price:       prod.Price,
+			ImageUrl:    fmt.Sprintf("%s/storage/product/%s", os.Getenv("STORAGE_SERVICE_URL"), prod.ImageFileName),
+		})
+	}
+	return &product.ListProductResponse{
+		Base:       utils.SuccessResponse("List product successfully"),
+		Pagination: paginationResponse,
+		Data:       data,
 	}, nil
 }

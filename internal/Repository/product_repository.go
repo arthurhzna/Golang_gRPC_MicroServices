@@ -4,14 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/arthurhzna/Golang_gRPC/internal/entity"
+	"github.com/arthurhzna/Golang_gRPC/pb/common"
 )
 
 type IProductRepository interface {
 	CreateNewProduct(ctx context.Context, product *entity.Product) error
 	GetProductById(ctx context.Context, id string) (*entity.Product, error)
 	EditProduct(ctx context.Context, product *entity.Product) error
+	DeleteProduct(ctx context.Context, id string, deletedAt time.Time, deletedBy string) error
+	GetProductsByPagination(ctx context.Context, pagination *common.PaginationRequest) ([]*entity.Product, *common.PaginationResponse, error)
 }
 
 type productRepository struct {
@@ -169,4 +173,68 @@ func (pr *productRepository) EditProduct(ctx context.Context, product *entity.Pr
 	}
 	return nil
 
+}
+
+func (pr *productRepository) DeleteProduct(ctx context.Context, id string, deletedAt time.Time, deletedBy string) error {
+	_, err := pr.db.ExecContext(ctx,
+		`UPDATE "product" SET deleted_at = $1, deleted_by = $2, is_deleted = true WHERE id = $3`,
+		deletedAt,
+		deletedBy,
+		id,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pr *productRepository) GetProductsByPagination(ctx context.Context, pagination *common.PaginationRequest) ([]*entity.Product, *common.PaginationResponse, error) {
+
+	row := pr.db.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM product WHERE is_deleted = false",
+	)
+
+	if row.Err() != nil {
+		return nil, nil, row.Err()
+	}
+	var totalCount int
+	err := row.Scan(&totalCount)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	offset := (pagination.CurrentPage - 1) * pagination.ItemPerPage
+	totalPages := (totalCount + int(pagination.ItemPerPage) - 1) / int(pagination.ItemPerPage)
+	rows, err := pr.db.QueryContext(ctx,
+		"SELECT id, name, description, price, image_file_name FROM product WHERE is_deleted = false ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+		pagination.ItemPerPage,
+		offset,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var products []*entity.Product = make([]*entity.Product, 0)
+
+	for rows.Next() {
+		var product entity.Product
+		err = rows.Scan(
+			&product.Id,
+			&product.Name,
+			&product.Description,
+			&product.Price,
+			&product.ImageFileName,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+		products = append(products, &product)
+	}
+	paginationResponse := &common.PaginationResponse{
+		CurrentPage:    pagination.CurrentPage,
+		ItemPerPage:    pagination.ItemPerPage,
+		TotalItemCount: int32(totalCount),
+		TotalPageCount: int32(totalPages),
+	}
+	return products, paginationResponse, nil
 }

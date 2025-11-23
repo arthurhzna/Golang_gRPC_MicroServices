@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/arthurhzna/Golang_gRPC/pb/common";
+
+message PaginationRequest {
+    // int32 current_page = 1 [(buf.validate.field).int32 = {gte: 1}];
+    // int32 page_size = 2 [(buf.validate.field).int32 = {gte: 1}];
+    int32 current_page = 1 ;
+    int32 item_per_page = 2 ;
+}
+
+message PaginationResponse {
+    int32 current_page = 1;
+    int32 total_page_count = 2;
+    int32 item_per_page = 3;
+    int32 total_item_count = 4;
+}

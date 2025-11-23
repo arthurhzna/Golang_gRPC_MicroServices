@@ -72,6 +72,10 @@ type serviceHandler struct {
 	└────────────────────────────────────────────┘
 */
 
+func NewServiceHandler() *serviceHandler {
+	return &serviceHandler{}
+}
+
 func (sh *serviceHandler) HelloWorld(ctx context.Context, req *service.HelloWorldRequest) (*service.HelloWorldResponse, error) { //override the method from the parent struct
 
 	validationErrors, err := utils.CheckValidation(req)
@@ -94,7 +98,3 @@ func (sh *serviceHandler) HelloWorld(ctx context.Context, req *service.HelloWorl
 // func NewServiceHandler() IServiceHandler {
 // 	return &serviceHandler{}
 // }
-
-func NewServiceHandler() *serviceHandler {
-	return &serviceHandler{}
-}
