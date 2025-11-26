@@ -17,6 +17,8 @@ import (
 type ICartService interface {
 	AddProductToCart(ctx context.Context, req *cart.AddProductToCartRequest) (*cart.AddProductToCartResponse, error)
 	ListCart(ctx context.Context, req *cart.ListCartRequest) (*cart.ListCartResponse, error)
+	DeleteCart(ctx context.Context, req *cart.DeleteCartRequest) (*cart.DeleteCartResponse, error)
+	UpdateCartQuantity(ctx context.Context, req *cart.UpdateCartQuantityRequest) (*cart.UpdateCartQuantityResponse, error)
 }
 
 type cartService struct {
@@ -114,6 +116,7 @@ func (cs *cartService) ListCart(ctx context.Context, req *cart.ListCartRequest) 
 	var items []*cart.ListCartResponseItem = make([]*cart.ListCartResponseItem, 0)
 	for _, cartEntity := range carts {
 		item := cart.ListCartResponseItem{
+			CartId:          cartEntity.Id,
 			ProductId:       cartEntity.ProductId,
 			ProductName:     cartEntity.Product.Name,
 			ProductImageUrl: fmt.Sprintf("%s/storage/product/%s", os.Getenv("STORAGE_SERVICE_URL"), cartEntity.Product.ImageFileName),
@@ -126,6 +129,84 @@ func (cs *cartService) ListCart(ctx context.Context, req *cart.ListCartRequest) 
 	return &cart.ListCartResponse{
 		Base:  utils.SuccessResponse("Cart list retrieved successfully"),
 		Items: items,
+	}, nil
+
+}
+
+func (cs *cartService) DeleteCart(ctx context.Context, req *cart.DeleteCartRequest) (*cart.DeleteCartResponse, error) {
+
+	claims, err := jwtentity.GetClaimsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	cartEntity, err := cs.cartRepository.GetCartById(ctx, req.CartId)
+	if err != nil {
+		return nil, err
+	}
+	if cartEntity == nil {
+		return &cart.DeleteCartResponse{
+			Base: utils.NotFoundResponse("Cart not found"),
+		}, nil
+	}
+
+	if cartEntity.UserId != claims.Subject {
+		return nil, utils.UnaunthorizedResponse()
+	}
+
+	err = cs.cartRepository.DeleteCart(ctx, req.CartId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cart.DeleteCartResponse{
+		Base: utils.SuccessResponse("Cart deleted successfully"),
+	}, nil
+}
+
+func (cs *cartService) UpdateCartQuantity(ctx context.Context, req *cart.UpdateCartQuantityRequest) (*cart.UpdateCartQuantityResponse, error) {
+
+	claims, err := jwtentity.GetClaimsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	cartEntity, err := cs.cartRepository.GetCartById(ctx, req.CartId)
+	if err != nil {
+		return nil, err
+	}
+	if cartEntity == nil {
+		return &cart.UpdateCartQuantityResponse{
+			Base: utils.NotFoundResponse("Cart not found"),
+		}, nil
+	}
+
+	if cartEntity.UserId != claims.Subject {
+		return nil, utils.UnaunthorizedResponse()
+	}
+
+	if req.NewQuantity <= 0 {
+		cs.cartRepository.DeleteCart(ctx, req.CartId)
+		if err != nil {
+			return nil, err
+		}
+		return &cart.UpdateCartQuantityResponse{
+			Base: utils.SuccessResponse("Cart deleted successfully"),
+		}, nil
+	}
+
+	now := time.Now()
+	cartEntity.Quantity = int(req.NewQuantity)
+	cartEntity.UpdatedAt = &now
+	cartEntity.UpdatedBy = &claims.FullName
+
+	err = cs.cartRepository.UpdateCart(ctx, cartEntity)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cart.UpdateCartQuantityResponse{
+		Base: utils.SuccessResponse("Cart quantity updated successfully"),
 	}, nil
 
 }
