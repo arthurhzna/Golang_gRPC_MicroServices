@@ -13,8 +13,10 @@ type webhookHandler struct {
 	webhookService service.IWebhookService
 }
 
-func NewWebhookHandler() *webhookHandler {
-	return &webhookHandler{}
+func NewWebhookHandler(webhookService service.IWebhookService) *webhookHandler {
+	return &webhookHandler{
+		webhookService: webhookService,
+	}
 }
 
 func (wh *webhookHandler) ReceiveInvoice(c *fiber.Ctx) error {

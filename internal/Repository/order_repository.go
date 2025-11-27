@@ -16,6 +16,7 @@ type IOrderRepository interface {
 	UpdateNumbering(ctx context.Context, numbering *entity.Numbering) error
 	CreateOrderItem(ctx context.Context, orderItem *entity.OrderItem) error
 	GetOrderById(ctx context.Context, orderId string) (*entity.Order, error)
+	UpdateOrder(ctx context.Context, order *entity.Order) error
 }
 
 type orderRepository struct {
@@ -98,4 +99,15 @@ func (or *orderRepository) GetOrderById(ctx context.Context, orderId string) (*e
 		return nil, err
 	}
 	return &order, nil
+}
+
+func (or *orderRepository) UpdateOrder(ctx context.Context, order *entity.Order) error {
+	_, err := or.db.ExecContext(
+		ctx,
+		"UPDATE \"order\" SET updated_at = $1, updated_by = $2, xendit_paid_at = $3, xendit_payment_channel = $4, xendit_payment_method = $5, order_status_code = $6 WHERE id = $7",
+		order.UpdatedAt, order.UpdatedBy, order.XenditPaidAt, order.XenditPaymentChannel, order.XenditPaymentMethod, order.OrderStatusCode, order.Id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

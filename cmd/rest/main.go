@@ -1,14 +1,20 @@
 package main
 
 import (
+	"context"
+	"log"
 	"mime"
 	"net/http"
 	"os"
 	"path"
 
 	"github.com/arthurhzna/Golang_gRPC/internal/handler"
+	"github.com/arthurhzna/Golang_gRPC/internal/repository"
+	"github.com/arthurhzna/Golang_gRPC/internal/service"
+	"github.com/arthurhzna/Golang_gRPC/pkg/database"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/joho/godotenv"
 )
 
 func handleGetFileName(c *fiber.Ctx) error {
@@ -36,10 +42,21 @@ func handleGetFileName(c *fiber.Ctx) error {
 }
 
 func main() {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+
+	ctx := context.Background()
 	app := fiber.New()
 	app.Use(cors.New())
 
-	webhookHandler := handler.NewWebhookHandler()
+	db := database.ConnectDb(ctx, os.Getenv("DB_URL"))
+
+	orderRepository := repository.NewOrderRepository(db)
+	webhookService := service.NewWebhookService(orderRepository)
+	webhookHandler := handler.NewWebhookHandler(webhookService)
 
 	app.Get("/storage/product/:filename", handleGetFileName)
 	app.Post("/product/upload", handler.UploadHandler)
