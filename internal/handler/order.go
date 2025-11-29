@@ -78,3 +78,41 @@ func (oh *orderHandler) ListOrder(ctx context.Context, req *order.ListOrderReque
 	}
 	return res, nil
 }
+
+func (oh *orderHandler) DetailOrder(ctx context.Context, request *order.DetailOrderRequest) (*order.DetailOrderResponse, error) {
+	validationErrors, err := utils.CheckValidation(request)
+	if err != nil {
+		return nil, err
+	}
+	if validationErrors != nil {
+		return &order.DetailOrderResponse{
+			Base: utils.ValidationErrorResponse(validationErrors),
+		}, nil
+	}
+
+	res, err := oh.orderService.DetailOrder(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (oh *orderHandler) UpdateOrderStatus(ctx context.Context, request *order.UpdateOrderStatusRequest) (*order.UpdateOrderStatusResponse, error) {
+	validationErrors, err := utils.CheckValidation(request)
+	if err != nil {
+		return nil, err
+	}
+	if validationErrors != nil {
+		return &order.UpdateOrderStatusResponse{
+			Base: utils.ValidationErrorResponse(validationErrors),
+		}, nil
+	}
+
+	res, err := oh.orderService.UpdateOrderStatus(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

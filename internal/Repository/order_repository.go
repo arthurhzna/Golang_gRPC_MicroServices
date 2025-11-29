@@ -86,23 +86,67 @@ func (or *orderRepository) CreateOrderItem(ctx context.Context, orderItem *entit
 func (or *orderRepository) GetOrderById(ctx context.Context, orderId string) (*entity.Order, error) {
 	row := or.db.QueryRowContext(
 		ctx,
-		"SELECT id FROM \"order\" WHERE id = $1 AND is_deleted = false", orderId)
+		"SELECT id, number, user_full_name, address, phone_number, notes, order_status_code, total, created_at, xendit_invoice_url, user_id, expired_at, xendit_paid_at, xendit_payment_channel, xendit_payment_method FROM \"order\" WHERE id = $1 AND is_deleted = false",
+		orderId,
+	)
 	if row.Err() != nil {
 		return nil, row.Err()
 	}
 
 	var order entity.Order
-
 	err := row.Scan(
 		&order.Id,
+		&order.Number,
+		&order.UserFullName,
+		&order.Address,
+		&order.PhoneNumber,
+		&order.Notes,
+		&order.OrderStatusCode,
+		&order.Total,
+		&order.CreatedAt,
+		&order.XenditInvoiceUrl,
+		&order.UserId,
+		&order.ExpiredAt,
+		&order.XenditPaidAt,
+		&order.XenditPaymentChannel,
+		&order.XenditPaymentMethod,
 	)
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
+
 		return nil, err
 	}
+
+	rows, err := or.db.QueryContext(
+		ctx,
+		"SELECT product_id, product_name, product_price, quantity FROM order_item WHERE order_id = $1 AND is_deleted = false",
+		order.Id,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]*entity.OrderItem, 0)
+	for rows.Next() {
+		var item entity.OrderItem
+
+		err = rows.Scan(
+			&item.ProductId,
+			&item.ProductName,
+			&item.ProductPrice,
+			&item.Quantity,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		items = append(items, &item)
+	}
+
+	order.Items = items
+
 	return &order, nil
 }
 
