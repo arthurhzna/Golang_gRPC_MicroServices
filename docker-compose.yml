@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  grpc-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grpc_server
+    command: /app/grpc-server
+    env_file:
+      - .env
+    ports:
+      - "50052:50052"
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  rest-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rest_server
+    command: /app/rest-server
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./storage:/app/storage
+    networks:
+      - app_network
+    restart: unless-stopped
+
+networks:
+  app_network:
+    driver: bridge

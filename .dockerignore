@@ -1,3 +1,11 @@
+.git
 .env
-.env-example
-.gitignore
+.env.example
+*.md
+LICENSE
+storage/*
+!storage/.gitkeep
+vendor
+.vscode
+.idea
+*.log
