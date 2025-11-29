@@ -32,10 +32,6 @@ Electronic Commerce microservice built with Go, gRPC, and REST API. Features inc
 
 This project follows **Clean Architecture** principles with clear separation of concerns:
 
-## 🏗️ Architecture
-
-This project follows **Clean Architecture** principles with clear separation of concerns:
-
 | Layer | Description | Components |
 |-------|-------------|------------|
 | **Presentation** | API Interfaces | gRPC Server (50052), REST Server (3000) |
