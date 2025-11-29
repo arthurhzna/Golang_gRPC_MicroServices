@@ -7,24 +7,6 @@
 
 Electronic Commerce microservice built with Go, gRPC, and REST API. Features include user authentication, product management, shopping cart, order processing with Xendit payment integration, and newsletter subscription.
 
-## 📋 Table of Contents
-
-- [Features](#-features)
-- [Architecture](#-architecture)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Running the Application](#-running-the-application)
-- [API Documentation](#-api-documentation)
-- [Docker Deployment](#-docker-deployment)
-- [Development](#-development)
-- [Testing](#-testing)
-- [CI/CD](#-cicd)
-- [Contributing](#-contributing)
-- [License](#-license)
-
 ## ✨ Features
 
 ### Core Features
