@@ -1,4 +1,4 @@
-# Golang gRPC
+# Golang gRPC Microservice
 
 [![Go Version](https://img.shields.io/badge/Go-1.24.2-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![gRPC](https://img.shields.io/badge/gRPC-1.77.0-244c5a?style=flat&logo=grpc)](https://grpc.io/)
