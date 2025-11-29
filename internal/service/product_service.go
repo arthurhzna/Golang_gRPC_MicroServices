@@ -309,8 +309,6 @@ func (ps *productService) ListProductAdmin(ctx context.Context, req *product.Lis
 		return nil, err
 	}
 
-	fmt.Println(claims.Role)
-
 	if claims.Role != entity.UserRoleAdmin {
 		return nil, utils.UnaunthorizedResponse()
 	}
