@@ -59,3 +59,22 @@ func (oh *orderHandler) ListOrderAdmin(ctx context.Context, req *order.ListOrder
 	}
 	return res, nil
 }
+
+func (oh *orderHandler) ListOrder(ctx context.Context, req *order.ListOrderRequest) (*order.ListOrderResponse, error) {
+	validationErrors, err := utils.CheckValidation(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if validationErrors != nil {
+		return &order.ListOrderResponse{
+			Base: utils.ValidationErrorResponse(validationErrors),
+		}, nil
+	}
+
+	res, err := oh.orderService.ListOrder(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}

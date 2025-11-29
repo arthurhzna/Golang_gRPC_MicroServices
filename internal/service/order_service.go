@@ -22,6 +22,7 @@ import (
 type IOrderService interface {
 	CreateOrder(ctx context.Context, req *order.CreateOrderRequest) (*order.CreateOrderResponse, error)
 	ListOrderAdmin(ctx context.Context, req *order.ListOrderAdminRequest) (*order.ListOrderAdminResponse, error)
+	ListOrder(ctx context.Context, req *order.ListOrderRequest) (*order.ListOrderResponse, error)
 }
 
 type orderService struct {
@@ -229,6 +230,140 @@ func (os *orderService) ListOrderAdmin(ctx context.Context, req *order.ListOrder
 		})
 	}
 	return &order.ListOrderAdminResponse{
+		Base:       utils.SuccessResponse("Orders fetched successfully"),
+		Pagination: metadata,
+		Data:       items,
+	}, nil
+}
+
+func (os *orderService) ListOrder(ctx context.Context, req *order.ListOrderRequest) (*order.ListOrderResponse, error) {
+	claims, err := jwtentity.GetClaimsFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	orders, metadata, err := os.orderRepository.GetListOrderPagination(ctx, req.Pagination, claims.Subject)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]*order.ListOrderResponseItem, 0)
+	for _, o := range orders {
+
+		products := make([]*order.ListOrderResponseItemProduct, 0)
+
+		for _, orderItem := range o.Items {
+			products = append(products, &order.ListOrderResponseItemProduct{
+				Id:       orderItem.ProductId,
+				Name:     orderItem.ProductName,
+				Price:    orderItem.ProductPrice,
+				Quantity: orderItem.Quantity,
+			})
+		}
+		orderStatusCode := o.OrderStatusCode
+		if o.OrderStatusCode == entity.OrderStatusCodeUnpaid && time.Now().After(*o.ExpiredAt) {
+			orderStatusCode = entity.OrderStatusCodeExpired
+		}
+
+		xenditInvoiceUrl := ""
+		if o.XenditInvoiceUrl != nil {
+			xenditInvoiceUrl = *o.XenditInvoiceUrl
+		}
+		/*
+
+			ini ada penjelasannya pada \internal\repository\product_repository.go
+				Kalau punya pointer ke struct:
+				struct Product *entity.Product;
+				Untuk akses field harus:
+				(*entity.Product).Id
+				atau pakai entity.Product->Id
+				Karena C tidak otomatis melakukan dereference.
+
+				✅ Di Go
+				Kalau punya pointer ke struct:
+				product *entity.Product
+				Go mengizinkan:
+				product.Id
+				Padahal secara konsep ini sama dengan:
+				(*product).Id
+
+				Situasi 1: Akses Field dari Pointer Struct ✅ Otomatis Dereference
+
+				var productEntity *entity.Product  // pointer ke struct
+
+				// Go OTOMATIS dereference untuk akses field
+				productEntity.Id = ""        // ✅ Langsung bisa!
+				// Di belakang layar Go melakukan: (*productEntity).Id
+
+				Situasi 2: Field Itu Sendiri Adalah Pointer ⚠️ Harus Manual Dereference
+
+				type Order struct {
+					XenditInvoiceUrl *string  // Field ini POINTER ke string
+				}
+
+				var order *Order  // pointer ke struct
+
+				// Akses field (otomatis dereference struct)
+				order.XenditInvoiceUrl
+				// Tipe: *string (pointer ke string)
+				// Nilai: 0x12345678 (alamat memory)
+
+				// Dereference field pointer untuk dapat nilai
+				*order.XenditInvoiceUrl
+				// Tipe: string
+				// Nilai: "https://xendit.com/invoice/123"
+
+				// Memory Layout
+				┌────────────────────────────────────┐
+				│  Order struct (di address 0x1000)  │
+				│  ┌──────────────────────────────┐  │
+				│  │ XenditInvoiceUrl: 0x2000     │  │  <-- Field ini POINTER
+				│  └──────────────────────────────┘  │
+				└────────────────────────────────────┘
+								│
+								└──> ┌────────────────────────────────┐
+									 │ String (di address 0x2000)     │
+									 │ "https://xendit.com/..."       │
+									 └────────────────────────────────┘
+
+				var o *Order  // pointer ke struct Order
+
+				// 1. Akses struct (Go otomatis dereference)
+				o.XenditInvoiceUrl
+				// = 0x2000 (pointer ke string)
+
+				// 2. Dereference field pointer
+				*o.XenditInvoiceUrl
+				// = "https://xendit.com/..." (string value)
+
+				// Field biasa (bukan pointer)
+				type Product struct {
+					Id string  // bukan pointer
+				}
+				var p *Product
+				p.Id  // ✅ Langsung dapat string
+
+				// Field pointer
+				type Order struct {
+					XenditInvoiceUrl *string  // pointer!
+				}
+				var o *Order
+				o.XenditInvoiceUrl   // dapat *string (pointer)
+				*o.XenditInvoiceUrl  // dapat string (nilai)
+		*/
+
+		items = append(items, &order.ListOrderResponseItem{
+			Id:               o.Id,
+			Number:           o.Number,
+			Customer:         o.UserFullName,
+			StatusCode:       orderStatusCode,
+			Total:            o.Total,
+			CreatedAt:        timestamppb.New(o.CreatedAt),
+			Products:         products,
+			XenditInvoiceUrl: xenditInvoiceUrl,
+		})
+	}
+	return &order.ListOrderResponse{
 		Base:       utils.SuccessResponse("Orders fetched successfully"),
 		Pagination: metadata,
 		Data:       items,
